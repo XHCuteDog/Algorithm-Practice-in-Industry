@@ -103,7 +103,7 @@ model_client = init_model_client()
 def translate(source):
     system_prompt = {
         "role": "system",
-        "content": "你是一位专业的翻译人员，擅长在人工智能领域内进行高质量的英文到中文翻译。你将会接收到一篇涉及自然语言处理（NLP）、信息检索（IR）、计算机视觉（CV）等方向的英文论文摘要。请准确翻译摘要内容，确保所有专业术语和技术细节得到正确的表达。"
+        "content": "你是一位资深的专业翻译，专精于人工智能领域的高质量英译中工作。你将收到一篇英文论文摘要，涵盖自然语言处理（NLP）、信息检索（IR）、计算机视觉（CV）等方向。请对摘要内容进行精准且流畅的翻译，确保所有专业术语、技术细节和学术表达得到正确和一致的呈现。翻译后文本应符合中文学术出版的标准，易于理解且保持原文的专业性和严谨性。"
     }
 
     return model_client.translate(source, system_prompt=system_prompt, temperature=1.3)
