@@ -147,9 +147,9 @@ def save_and_translate(papers, filename='arxiv.json'):
     for paper in untranslated_papers:
         source.append(paper['summary'])
     target = translate(source)
-    if len(target) == len(untranslated_papers):
-        for i in range(len(untranslated_papers)):
-            untranslated_papers[i]['translated'] = target[i]
+    assert len(target) == len(untranslated_papers)
+    for i in range(len(untranslated_papers)):
+        untranslated_papers[i]['translated'] = target[i]
     
     results.extend(untranslated_papers)
 
@@ -172,11 +172,13 @@ def cronjob():
     today = datetime.datetime.now().strftime('%Y-%m-%d')
 
     print('[+] 开始检索每日最新论文....')
+    
+    # untranslated papers
     papers = search_arxiv_papers(QUERY, LIMITS)
 
     if papers == []:
         
-        push_title = f'Arxiv:{QUERY}[X]@{today}'
+        # push_title = f'Arxiv:{QUERY}[X]@{today}'
         send_wechat_message('', '[WARN] NO UPDATE TODAY!', SERVERCHAN_API_KEY)
 
         print('[+] 每日推送任务执行结束')
@@ -193,8 +195,9 @@ def cronjob():
         pub_date = paper['pub_date']
         summary = paper['summary']
         translated = paper['translated']
+        # author = paper['author']
 
-        yesterday = get_yesterday()
+        # yesterday = get_yesterday()
 
         if pub_date == yesterday:
             msg_title = f'[Newest]{title}' 
@@ -202,11 +205,11 @@ def cronjob():
             msg_title = f'{title}'
 
         msg_url = f'URL: {url}'
-        msg_pub_date = f'Pub Date：{pub_date}'
-        msg_summary = f'Summary：\n\n{summary}'
+        msg_pub_date = f'Pub Date: {pub_date}'
+        msg_summary = f'Summary: {summary}'
         msg_translated = f'Translated (Powered by {MODEL_TYPE}):\n\n{translated}'
 
-        push_title = f'Arxiv:{QUERY}[{ii}]@{today}'
+        push_title = f'Arxiv:{QUERY}[{ii + 1}]@{today}'
         msg_content = f"[{msg_title}]({url})\n\n{msg_pub_date}\n\n{msg_url}\n\n{msg_translated}\n\n{msg_summary}\n\n"
 
         # send_wechat_message(push_title, msg_content, SERVERCHAN_API_KEY)
