@@ -4,7 +4,7 @@ import time
 import requests
 import datetime
 from tqdm import tqdm
-from arxiv import send_wechat_message, send_feishu_message
+from arxiv import send_wechat_message, send_feishu_message, search_arxiv_papers
 from translate import translate
 
 HEADERS = {
@@ -44,7 +44,10 @@ def match_score(item):
             score += 0.25
     return score
 
+
 def get_paper(query):
+    pass
+    # TODO 创建对应的接口
     req = {
         "query": query,
         "needDetails": True,
@@ -93,6 +96,7 @@ def parse_item(item):
 
     return ret
 
+# TODO 先看以一下 maintain 和 update 的逻辑
 def update_results(results):
     # confs = ['kdd', 'cikm', 'sigir', 'www', 'wsdm', 'ecir', 'recsys']
     confs = ['cikm', 'recsys', 'wsdm', 'kdd', 'sigir', 'www', 'ecir']
@@ -103,21 +107,26 @@ def update_results(results):
     for year in years:
         for conf in confs:
             key = f"{conf}{year}"
+            # 如果不是我们关注的会议，则跳过
             if key not in results:
                 continue
             for i in range(len(results[key])):
                 if count >= LIMITS:
                     daily_limits = True
                     break
+                # 我们通过 update.py 更新 results.json，但不会初始化 paper_abstract
                 if results[key][i]["paper_abstract"] != "":
                     continue
-                item = get_paper(results[key][i]["paper_name"])
+                # item = get_paper(results[key][i]["paper_name"])
+                # TODO 暂时选择用 arxiv 搜索论文，选择名字最接近的论文
+                item = search_arxiv_papers(results[key][i]["paper_name"], 1)
                 if item is None:
                     print(f"[+] find error at paper {results[key][i]['paper_name']}")
                     time.sleep(INTERVAL * 20)
                     continue
                 try:
-                    parse_ret = parse_item(item)
+                    # parse_ret = parse_item(item)
+                    parse_ret = item
                 except:
                     print(f"[+] find error at paper {results[key][i]['paper_name']}")
                     time.sleep(INTERVAL * 20)
@@ -134,11 +143,12 @@ def update_results(results):
                 break
         if daily_limits:
             break
-    source = [item[-1]["paper_abstract"] for item in ret_items]
+    # source = [item[-1]["paper_abstract"] for item in ret_items]
+    source = [item[-1]["summary"] for item in ret_items]
     target = translate(source)
-    if len(target) == len(source):
-        for i, _ in enumerate(ret_items):
-            ret_items[i][-1].update({"translated": target[i]})
+    assert len(target) == len(source)
+    for i, _ in enumerate(ret_items):
+        ret_items[i][-1].update({"translated": target[i]})
     for key, i, item in ret_items:
         results[key][i].update(item)
     save_results(results)
@@ -149,6 +159,7 @@ def cronjob(error_cnt):
     print("[+] 开始加载历史数据")
     results = load_results()
     for key in results:
+        # 按照 match_score 降序排序
         results[key] = sorted(results[key], key=match_score, reverse=True)
     print("[+] 开始检索最新顶会论文")
     ret_items = update_results(results)
@@ -179,7 +190,7 @@ def cronjob(error_cnt):
         msg_author = f'Author: {author}'
         msg_org = f'ORG: {org}'
         msg_url = f'URL: {url}'
-        msg_summary = f'Summary：\n\n{summary}'
+        msg_summary = f'Summary: \n\n{summary}'
         msg_translated = f'Translated (Powered by {MODEL_TYPE}):\n\n{translated}'
 
         push_title = f'{conf}[{ii}]@{today}'
