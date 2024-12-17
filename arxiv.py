@@ -12,10 +12,15 @@ import datetime
 from tqdm import tqdm
 from translate import translate
 
+# 用于转发到飞书群组
 SERVERCHAN_API_KEY = os.environ.get("SERVERCHAN_API_KEY", None)
+# 搜索关键词
 QUERY = os.environ.get('QUERY', 'cs.IR')
+# 搜索条数
 LIMITS = int(os.environ.get('LIMITS', 3))
+# 飞书群组webhook
 FEISHU_URL = os.environ.get("FEISHU_URL", None)
+# 翻译模型
 MODEL_TYPE = os.environ.get("MODEL_TYPE", "DeepSeek")
 
 def get_yesterday():
@@ -26,7 +31,8 @@ def get_yesterday():
 
 def search_arxiv_papers(search_term, max_results=10):
     papers = []
-
+    
+    # arxiv API docurl[https://info.arxiv.org/help/api/user-manual.html#_calling_the_api]
     url = f'http://export.arxiv.org/api/query?' + \
           f'search_query=all:{search_term}' +  \
           f'&start=0&&max_results={max_results}' + \
@@ -38,6 +44,8 @@ def search_arxiv_papers(search_term, max_results=10):
         return []
 
     feed = response.text
+    
+    
     entries = feed.split('<entry>')[1:]
 
     if not entries:
@@ -50,6 +58,9 @@ def search_arxiv_papers(search_term, max_results=10):
         title = entry.split('<title>')[1].split('</title>')[0].strip()
         summary = entry.split('<summary>')[1].split('</summary>')[0].strip().replace('\n', ' ').replace('\r', '')
         url = entry.split('<id>')[1].split('</id>')[0].strip()
+        authors = entry.split('<author>')[1].split('</author>')[0].strip()
+        # 此时，authors 是一个由多个 <name> name </name> 组成的字符串，需要将其转换为列表，需要从每个 <name> name </name> 中提取出 name
+        author_list = [author.split('</name>')[0].strip() for author in authors.split('<name>') if author.strip()]
         pub_date = entry.split('<published>')[1].split('</published>')[0]
         pub_date = datetime.datetime.strptime(pub_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
 
@@ -57,6 +68,7 @@ def search_arxiv_papers(search_term, max_results=10):
             'title': title,
             'url': url,
             'pub_date': pub_date,
+            'author': author_list,
             'summary': summary,
             'translated': '',
         })
@@ -117,14 +129,17 @@ def save_and_translate(papers, filename='arxiv.json'):
 
     cached_title2idx = {result['title'].lower():i for i, result in enumerate(results)}
     
+    # 存储论文标题
     untranslated_papers = []
-    translated_papers = []
+    # translated_papers = []
+    translated_paper_num = 0
     for paper in papers:
         title = paper['title'].lower()
         if title in cached_title2idx.keys():
-            translated_papers.append(
-                results[cached_title2idx[title]]
-            )
+            # translated_papers.append(
+            #     results[cached_title2idx[title]]
+            # )
+            translated_paper_num += 1
         else:
             untranslated_papers.append(paper)
     
@@ -141,7 +156,7 @@ def save_and_translate(papers, filename='arxiv.json'):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
 
-    print(f'[+] 总检索条数: {len(papers)} | 命中缓存: {len(translated_papers)} | 实际返回: {len(untranslated_papers)}....')
+    print(f'[+] 总检索条数: {len(papers)} | 命中缓存: {translated_paper_num} | 实际返回: {len(untranslated_papers)}....')
 
     return untranslated_papers # 只需要发送缓存中没有的
 
