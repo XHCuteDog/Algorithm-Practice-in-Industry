@@ -138,12 +138,10 @@ def save_and_translate(papers, filename='arxiv.json'):
     for paper in papers:
         title = paper['title'].lower()
         if title in cached_title2idx.keys():
-            # translated_papers.append(
-            #     results[cached_title2idx[title]]
-            # )
+            translated_papers.append(paper)
             translated_paper_num += 1
-            if NOT_SAVE:
-                untranslated_papers.append(paper)
+            # if NOT_SAVE:
+            #     untranslated_papers.append(paper)
         else:
             untranslated_papers.append(paper)
     
@@ -154,16 +152,14 @@ def save_and_translate(papers, filename='arxiv.json'):
     assert len(target) == len(untranslated_papers)
     for i in range(len(untranslated_papers)):
         untranslated_papers[i]['translated'] = target[i]
-        
-    if not NOT_SAVE:
-        results.extend(untranslated_papers)
 
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
 
     print(f'[+] 总检索条数: {len(papers)} | 命中缓存: {translated_paper_num} | 实际返回: {len(untranslated_papers)}....')
-
-    return untranslated_papers # 只需要发送缓存中没有的
+    
+    untranslated_papers.extend(translated_papers)
+    return untranslated_papers
 
         
 def cronjob():
