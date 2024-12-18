@@ -23,6 +23,8 @@ FEISHU_URL = os.environ.get("FEISHU_URL", None)
 # 翻译模型
 MODEL_TYPE = os.environ.get("MODEL_TYPE", "DeepSeek")
 
+NOT_SAVE = os.environ.get("NOTSAVE", None)
+
 def get_yesterday():
     today = datetime.datetime.now()
     yesterday = today - datetime.timedelta(days=1)
@@ -150,8 +152,8 @@ def save_and_translate(papers, filename='arxiv.json'):
     assert len(target) == len(untranslated_papers)
     for i in range(len(untranslated_papers)):
         untranslated_papers[i]['translated'] = target[i]
-    
-    results.extend(untranslated_papers)
+    if not NOT_SAVE:
+        results.extend(untranslated_papers)
 
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
