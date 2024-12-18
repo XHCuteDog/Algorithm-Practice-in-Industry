@@ -142,6 +142,8 @@ def save_and_translate(papers, filename='arxiv.json'):
             #     results[cached_title2idx[title]]
             # )
             translated_paper_num += 1
+            if NOT_SAVE:
+                untranslated_papers.append(paper)
         else:
             untranslated_papers.append(paper)
     
@@ -152,6 +154,7 @@ def save_and_translate(papers, filename='arxiv.json'):
     assert len(target) == len(untranslated_papers)
     for i in range(len(untranslated_papers)):
         untranslated_papers[i]['translated'] = target[i]
+        
     if not NOT_SAVE:
         results.extend(untranslated_papers)
 
