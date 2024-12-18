@@ -133,7 +133,7 @@ def save_and_translate(papers, filename='arxiv.json'):
     
     # 存储论文标题
     untranslated_papers = []
-    # translated_papers = []
+    translated_papers = []
     translated_paper_num = 0
     for paper in papers:
         title = paper['title'].lower()
