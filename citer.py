@@ -1,3 +1,6 @@
+"""
+用于填充会议论文的引用数，基于已经构造的 results.json 
+"""
 import re
 import time
 import json
@@ -52,11 +55,14 @@ def extract_doi(url):
 
 def fill_citation(paper_item, doi_counter):
     try:
+        # paper_cite 初始化为 -1，代表未获取
         if paper_item['paper_cite'] in [-1, -2]:
             doi = extract_doi(paper_item['paper_url'])
             paper_cite = doi_counter.get_citation(doi)
+            # 注意这里使用复制版本，不对原字典进行修改，避免并发问题
             paper_item = paper_item.copy()
             paper_item['paper_cite'] = paper_cite
+        # 如果已经获取到引用数，则直接返回
         return paper_item
     except Exception as e:
         print(f"Error: Failed to fill_citation for {paper_item['paper_url']}: {str(e)}")
@@ -65,6 +71,7 @@ def fill_citation(paper_item, doi_counter):
 def update_results_parallel(conf, papers):
     doi_counter = CachedDOICounter()
     with ThreadPoolExecutor(max_workers=5) as executor:
+        # 不同 paper 的 DOI 不可能相同，所以 CachedDOICounter 不需要考虑并发问题
         future_to_paper = {
             executor.submit(fill_citation, paper_item, doi_counter): paper_item
             for paper_item in papers
@@ -78,6 +85,7 @@ def update_results_parallel(conf, papers):
                 print(f"Error: Failed to update citation for {paper_item['paper_url']}: {str(e)}")
                 data = paper_item
             updated_papers.append(data)
+    assert len(updated_papers) == len(papers)
     return {conf: updated_papers}
 
 def fetch_parallel(results, confs):
@@ -131,6 +139,7 @@ def fetch(results, confs):
 
 def run_all(filename='results.json', confs=None, mode='seq'):
     results = load_results(filename)
+    # 默认更新所有会议
     if confs is None:
         confs = list(results.keys())
     if mode == 'seq':
