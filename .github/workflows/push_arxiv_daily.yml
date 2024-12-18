@@ -7,7 +7,7 @@ env:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * *' # 每天 UTC 时间 10:00 触发, 即上海时间 18 点
+    - cron: '45 3 * * *' # 每天 UTC 时间 03:45 触发, 即上海时间 11:45
 
 jobs:
   daily-push:
